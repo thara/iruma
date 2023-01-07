@@ -4,11 +4,23 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	"github.com/xo/dburl"
 )
 
 type mysql struct {
 	db     *sql.DB
-	dbName string
+	scheme string
+}
+
+func (d *mysql) init(u *dburl.URL) error {
+	db, err := sql.Open(u.Driver, u.DSN)
+	if err != nil {
+		return fmt.Errorf("fail to connect database: %w", err)
+	}
+	d.db = db
+	d.scheme = u.Scheme
+	return nil
 }
 
 func (d *mysql) getTables(ctx context.Context) ([]*Table, error) {
@@ -21,7 +33,7 @@ FROM
 WHERE
 	TABLE_SCHEMA = ?
 `
-	rows, err := d.db.QueryContext(ctx, query, d.dbName)
+	rows, err := d.db.QueryContext(ctx, query, d.scheme)
 	if err != nil {
 		return nil, fmt.Errorf("fail to table query: %w", err)
 	}
@@ -57,7 +69,7 @@ WHERE
 	TABLE_SCHEMA = ?
 AND TABLE_NAME = ?
 `
-	rows, err := d.db.QueryContext(ctx, query, d.dbName, tableName)
+	rows, err := d.db.QueryContext(ctx, query, d.scheme, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("fail to column query: %w", err)
 	}
