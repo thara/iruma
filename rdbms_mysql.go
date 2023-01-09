@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"github.com/xo/dburl"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type mysql struct {
@@ -16,7 +18,10 @@ type mysql struct {
 func (d *mysql) init(u *dburl.URL) error {
 	db, err := sql.Open(u.Driver, u.DSN)
 	if err != nil {
-		return fmt.Errorf("fail to connect database: %w", err)
+		return fmt.Errorf("fail to open database connection: %w", err)
+	}
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("fail to ping database: %w", err)
 	}
 	d.db = db
 	d.scheme = u.Scheme

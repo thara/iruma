@@ -21,7 +21,8 @@ func lookupRDBMS(u *dburl.URL) (rdbms, error) {
 	default:
 		return nil, fmt.Errorf("unsupported DB driver: %s", u.Driver)
 	}
-
-	r.init(u)
+	if err := r.init(u); err != nil {
+		return nil, err
+	}
 	return r, nil
 }
