@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/xo/dburl"
 
@@ -12,7 +13,7 @@ import (
 
 type mysql struct {
 	db     *sql.DB
-	scheme string
+	dbName string
 }
 
 func (d *mysql) init(u *dburl.URL) error {
@@ -24,7 +25,7 @@ func (d *mysql) init(u *dburl.URL) error {
 		return fmt.Errorf("fail to ping database: %w", err)
 	}
 	d.db = db
-	d.scheme = u.Scheme
+	d.dbName = strings.TrimPrefix(u.Path, "/")
 	return nil
 }
 
@@ -38,7 +39,7 @@ FROM
 WHERE
 	TABLE_SCHEMA = ?
 `
-	rows, err := d.db.QueryContext(ctx, query, d.scheme)
+	rows, err := d.db.QueryContext(ctx, query, d.dbName)
 	if err != nil {
 		return nil, fmt.Errorf("fail to table query: %w", err)
 	}
@@ -74,7 +75,7 @@ WHERE
 	TABLE_SCHEMA = ?
 AND TABLE_NAME = ?
 `
-	rows, err := d.db.QueryContext(ctx, query, d.scheme, tableName)
+	rows, err := d.db.QueryContext(ctx, query, d.dbName, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("fail to column query: %w", err)
 	}
