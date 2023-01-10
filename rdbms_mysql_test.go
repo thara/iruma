@@ -84,7 +84,7 @@ CREATE TABLE foo (
   col_timestamp    TIMESTAMP            NOT NULL COMMENT 'column type: TIMESTAMP',
   col_varchar      VARCHAR(20)          NOT NULL COMMENT 'column type: VARCHAR',
   col_text         TEXT                 NOT NULL COMMENT 'column type: TEXT',
-  col_enum         ENUM('column type: a', 'b', 'c')  NOT NULL COMMENT 'column type: ENUM'
+  col_enum         ENUM('a', 'b', 'c')  NOT NULL COMMENT 'column type: ENUM'
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COMMENT = 'this is the test table'
@@ -106,7 +106,7 @@ CREATE TABLE foo (
 	os.Exit(code)
 }
 
-func TestMySQL_getTables(t *testing.T) {
+func TestMySQL(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -123,4 +123,52 @@ func TestMySQL_getTables(t *testing.T) {
 	table := tables[0]
 	assert.Equal(t, "foo", table.Name)
 	assert.Equal(t, "this is the test table", table.Comment)
+
+	columns, err := db.getColumns(ctx, table.Name)
+	require.NoError(t, err)
+	require.Greater(t, len(columns), 1)
+
+	colMap := map[string]*Column{}
+	for _, c := range columns {
+		colMap[c.Name] = c
+	}
+
+	tests := []struct {
+		name    string
+		sqlType string
+		comment string
+	}{
+		{name: "col_bit", sqlType: "bit(4)", comment: "column type: BIT"},
+		{name: "col_s_tiny_int", sqlType: "tinyint", comment: "column type: TINYINT"},
+		{name: "col_u_tiny_int", sqlType: "tinyint unsigned", comment: "column type: TINYINT UNSIGNED"},
+		{name: "col_s_small_int", sqlType: "smallint", comment: "column type: SMALLINT"},
+		{name: "col_u_small_int", sqlType: "smallint unsigned", comment: "column type: SMALLINT UNSIGNED"},
+		{name: "col_s_medium_int", sqlType: "mediumint", comment: "column type: MEDIUMINT"},
+		{name: "col_u_medium_int", sqlType: "mediumint unsigned", comment: "column type: MEDIUMINT UNSIGNED"},
+		{name: "col_s_int", sqlType: "int", comment: "column type: INT"},
+		{name: "col_u_int", sqlType: "int unsigned", comment: "column type: INT UNSIGNED"},
+		{name: "col_s_big_int", sqlType: "bigint", comment: "column type: BIGINT"},
+		{name: "col_u_big_int", sqlType: "bigint unsigned", comment: "column type: BIGINT UNSIGNED"},
+		{name: "col_s_float", sqlType: "float", comment: "column type: FLOAT"},
+		{name: "col_u_float", sqlType: "float unsigned", comment: "column type: FLOAT UNSIGNED"},
+		{name: "col_s_double", sqlType: "double", comment: "column type: DOUBLE"},
+		{name: "col_u_double", sqlType: "double unsigned", comment: "column type: DOUBLE UNSIGNED"},
+		{name: "col_boolean", sqlType: "tinyint(1)", comment: "column type: BOOLEAN"},
+		{name: "col_date", sqlType: "date", comment: "column type: DATE"},
+		{name: "col_time", sqlType: "time", comment: "column type: TIME"},
+		{name: "col_datetime", sqlType: "datetime", comment: "column type: DATETIME"},
+		{name: "col_timestamp", sqlType: "timestamp", comment: "column type: TIMESTAMP"},
+		{name: "col_varchar", sqlType: "varchar(20)", comment: "column type: VARCHAR"},
+		{name: "col_text", sqlType: "text", comment: "column type: TEXT"},
+		{name: "col_enum", sqlType: "enum('a','b','c')", comment: "column type: ENUM"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.sqlType, func(t *testing.T) {
+			col, ok := colMap[tt.name]
+			require.True(t, ok)
+			assert.Equal(t, tt.name, col.Name)
+			assert.Equal(t, tt.sqlType, col.SQLType)
+			assert.Equal(t, tt.comment, col.Comment)
+		})
+	}
 }
