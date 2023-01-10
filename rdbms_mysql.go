@@ -82,7 +82,7 @@ AND TABLE_NAME = ?
 	var columns []*Column
 	for rows.Next() {
 		var col Column
-		err := rows.Scan(&col.Name, &col.Type, &col.Comment)
+		err := rows.Scan(&col.Name, &col.SQLType, &col.Comment)
 		if err != nil {
 			return nil, fmt.Errorf("fail to scan row: %w", err)
 		}

@@ -7,6 +7,6 @@ type Table struct {
 
 type Column struct {
 	Name    string
-	Type    string
+	SQLType string
 	Comment string
 }
