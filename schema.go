@@ -9,4 +9,6 @@ type Column struct {
 	Name    string
 	SQLType string
 	Comment string
+
+	AutoIncrement bool
 }

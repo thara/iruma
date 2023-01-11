@@ -68,7 +68,8 @@ func (d *mysql) getColumns(ctx context.Context, tableName string) ([]*Column, er
 SELECT
 	COLUMN_NAME,
 	COLUMN_TYPE,
-	COLUMN_COMMENT
+	COLUMN_COMMENT,
+	EXTRA
 FROM
 	INFORMATION_SCHEMA.COLUMNS
 WHERE
@@ -83,10 +84,13 @@ AND TABLE_NAME = ?
 	var columns []*Column
 	for rows.Next() {
 		var col Column
-		err := rows.Scan(&col.Name, &col.SQLType, &col.Comment)
+		var extra string
+		err := rows.Scan(&col.Name, &col.SQLType, &col.Comment, &extra)
 		if err != nil {
 			return nil, fmt.Errorf("fail to scan row: %w", err)
 		}
+		col.AutoIncrement = strings.Contains(extra, "auto_increment")
+
 		columns = append(columns, &col)
 	}
 	if err := rows.Close(); err != nil {

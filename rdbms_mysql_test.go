@@ -62,6 +62,7 @@ func TestMain(m *testing.M) {
 		}
 		if _, err := db.Exec(`
 CREATE TABLE foo (
+  id	           BIGINT(20) UNSIGNED  NOT NULL AUTO_INCREMENT COMMENT 'this is surrogate key',
   col_bit          BIT(4)               NOT NULL COMMENT 'column type: BIT',
   col_s_tiny_int   TINYINT              NOT NULL COMMENT 'column type: TINYINT',
   col_u_tiny_int   TINYINT UNSIGNED     NOT NULL COMMENT 'column type: TINYINT UNSIGNED',
@@ -84,7 +85,8 @@ CREATE TABLE foo (
   col_timestamp    TIMESTAMP            NOT NULL COMMENT 'column type: TIMESTAMP',
   col_varchar      VARCHAR(20)          NOT NULL COMMENT 'column type: VARCHAR',
   col_text         TEXT                 NOT NULL COMMENT 'column type: TEXT',
-  col_enum         ENUM('a', 'b', 'c')  NOT NULL COMMENT 'column type: ENUM'
+  col_enum         ENUM('a', 'b', 'c')  NOT NULL COMMENT 'column type: ENUM',
+  PRIMARY KEY (id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COMMENT = 'this is the test table'
@@ -134,10 +136,12 @@ func TestMySQL(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		sqlType string
-		comment string
+		name          string
+		sqlType       string
+		comment       string
+		autoIncrement bool
 	}{
+		{name: "id", sqlType: "bigint unsigned", comment: "this is surrogate key", autoIncrement: true},
 		{name: "col_bit", sqlType: "bit(4)", comment: "column type: BIT"},
 		{name: "col_s_tiny_int", sqlType: "tinyint", comment: "column type: TINYINT"},
 		{name: "col_u_tiny_int", sqlType: "tinyint unsigned", comment: "column type: TINYINT UNSIGNED"},
@@ -169,6 +173,7 @@ func TestMySQL(t *testing.T) {
 			assert.Equal(t, tt.name, col.Name)
 			assert.Equal(t, tt.sqlType, col.SQLType)
 			assert.Equal(t, tt.comment, col.Comment)
+			assert.Equal(t, tt.autoIncrement, col.AutoIncrement)
 		})
 	}
 }
