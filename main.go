@@ -5,19 +5,22 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"text/template"
 
 	"github.com/xo/dburl"
 )
 
 func main() {
 	url := flag.Args()[0]
+	templatePath := flag.Args()[1]
 
-	if err := run(url); err != nil {
+	if err := run(url, templatePath); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func run(urlString string) error {
+func run(urlString, templatePath string) error {
 	url, err := dburl.Parse(urlString)
 	if err != nil {
 		return fmt.Errorf("fail to parse URL: %w", err)
@@ -45,6 +48,20 @@ func run(urlString string) error {
 	}
 
 	data := templateData{Tables: tables, columnsMap: columnsMap}
-	fmt.Println(data)
+
+	t, err := template.ParseFiles(templatePath)
+	if err != nil {
+		return fmt.Errorf("fail to parse template at %s: %w", templatePath, err)
+	}
+
+	t.Funcs(template.FuncMap{
+		"getColumns": data.GetColumns,
+	})
+
+	err = t.Execute(os.Stdout, data)
+	if err != nil {
+		return fmt.Errorf("fail to apply template at %s: %w", templatePath, err)
+	}
+
 	return nil
 }
