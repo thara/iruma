@@ -47,7 +47,11 @@ func run(urlString, templatePath string) error {
 		columnsMap[t.Name] = columns
 	}
 
-	data := templateData{Tables: tables, columnsMap: columnsMap}
+	data := struct {
+		Tables []*Table
+	}{
+		Tables: tables,
+	}
 
 	t, err := template.ParseFiles(templatePath)
 	if err != nil {
@@ -55,7 +59,13 @@ func run(urlString, templatePath string) error {
 	}
 
 	t.Funcs(template.FuncMap{
-		"getColumns": data.GetColumns,
+		"getColumns": func(t *Table) []*Column {
+			cs, ok := columnsMap[t.Name]
+			if !ok {
+				return nil
+			}
+			return cs
+		},
 	})
 
 	err = t.Execute(os.Stdout, data)
