@@ -12,6 +12,8 @@ import (
 )
 
 func main() {
+	flag.Parse()
+
 	url := flag.Args()[0]
 	templatePath := flag.Args()[1]
 
