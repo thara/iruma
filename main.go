@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"text/template"
 
 	"github.com/xo/dburl"
@@ -55,12 +56,7 @@ func run(urlString, templatePath string) error {
 		Tables: tables,
 	}
 
-	t, err := template.ParseFiles(templatePath)
-	if err != nil {
-		return fmt.Errorf("fail to parse template at %s: %w", templatePath, err)
-	}
-
-	t.Funcs(template.FuncMap{
+	t, err := template.New(path.Base(templatePath)).Funcs(template.FuncMap{
 		"getColumns": func(t *Table) []*Column {
 			cs, ok := columnsMap[t.Name]
 			if !ok {
@@ -68,7 +64,10 @@ func run(urlString, templatePath string) error {
 			}
 			return cs
 		},
-	})
+	}).ParseFiles(templatePath)
+	if err != nil {
+		return fmt.Errorf("fail to parse template at %s: %w", templatePath, err)
+	}
 
 	err = t.Execute(os.Stdout, data)
 	if err != nil {
