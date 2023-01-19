@@ -10,6 +10,7 @@ import (
 	"text/template"
 
 	"github.com/xo/dburl"
+	"gopkg.in/yaml.v2"
 )
 
 func main() {
@@ -17,13 +18,14 @@ func main() {
 
 	url := flag.Args()[0]
 	templatePath := flag.Args()[1]
+	mappingPath := flag.Args()[1]
 
-	if err := run(url, templatePath); err != nil {
+	if err := run(url, templatePath, mappingPath); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func run(urlString, templatePath string) error {
+func run(urlString, templatePath, mappingPath string) error {
 	url, err := dburl.Parse(urlString)
 	if err != nil {
 		return fmt.Errorf("fail to parse URL: %w", err)
@@ -50,6 +52,23 @@ func run(urlString, templatePath string) error {
 		columnsMap[t.Name] = columns
 	}
 
+	b, err := os.ReadFile(mappingPath)
+	if err != nil {
+		return fmt.Errorf("fail to read file at %s: %w", mappingPath, err)
+	}
+	mapping := make(map[interface{}]interface{})
+	err = yaml.Unmarshal(b, &mapping)
+	if err != nil {
+		return fmt.Errorf("fail to unmarshal at %s: %w", mappingPath, err)
+	}
+
+	var columnTypeMapper map[string]string
+	if v, ok := mapping["column_types"]; ok {
+		if m, ok := v.(map[string]string); ok {
+			columnTypeMapper = m
+		}
+	}
+
 	data := struct {
 		Tables []*Table
 	}{
@@ -63,6 +82,9 @@ func run(urlString, templatePath string) error {
 				return nil
 			}
 			return cs
+		},
+		"mapColumnType": func(c *Column) string {
+			return columnTypeMapper[c.SQLType]
 		},
 	}).ParseFiles(templatePath)
 	if err != nil {
