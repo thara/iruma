@@ -15,19 +15,24 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var mappingPath string
+
+func init() {
+	flag.StringVar(&mappingPath, "m", "", "mapping path(YAML)")
+}
+
 func main() {
 	flag.Parse()
 
 	url := flag.Args()[0]
 	templatePath := flag.Args()[1]
-	mappingPath := flag.Args()[1]
 
-	if err := run(url, templatePath, mappingPath); err != nil {
+	if err := run(url, templatePath); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func run(urlString, templatePath, mappingPath string) error {
+func run(urlString, templatePath string) error {
 	url, err := dburl.Parse(urlString)
 	if err != nil {
 		return fmt.Errorf("fail to parse URL: %w", err)
@@ -54,21 +59,9 @@ func run(urlString, templatePath, mappingPath string) error {
 		columnsMap[t.Name] = columns
 	}
 
-	b, err := os.ReadFile(mappingPath)
+	columnTypeMapper, err := loadColumnTypeMapper()
 	if err != nil {
-		return fmt.Errorf("fail to read file at %s: %w", mappingPath, err)
-	}
-	mapping := make(map[interface{}]interface{})
-	err = yaml.Unmarshal(b, &mapping)
-	if err != nil {
-		return fmt.Errorf("fail to unmarshal at %s: %w", mappingPath, err)
-	}
-
-	var columnTypeMapper map[string]string
-	if v, ok := mapping["column_types"]; ok {
-		if m, ok := v.(map[string]string); ok {
-			columnTypeMapper = m
-		}
+		return err
 	}
 
 	data := struct {
@@ -107,4 +100,28 @@ func run(urlString, templatePath, mappingPath string) error {
 	}
 
 	return nil
+}
+
+func loadColumnTypeMapper() (map[string]string, error) {
+	if len(mappingPath) == 0 {
+		return nil, nil
+	}
+
+	mapping := make(map[interface{}]interface{})
+	b, err := os.ReadFile(mappingPath)
+	if err != nil {
+		return nil, fmt.Errorf("fail to read file at %s: %w", mappingPath, err)
+	}
+	err = yaml.Unmarshal(b, &mapping)
+	if err != nil {
+		return nil, fmt.Errorf("fail to unmarshal at %s: %w", mappingPath, err)
+	}
+
+	var columnTypeMapper map[string]string
+	if v, ok := mapping["column_types"]; ok {
+		if m, ok := v.(map[string]string); ok {
+			columnTypeMapper = m
+		}
+	}
+	return columnTypeMapper, nil
 }
