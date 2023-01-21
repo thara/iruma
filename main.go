@@ -7,8 +7,10 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 	"text/template"
 
+	"github.com/iancoleman/strcase"
 	"github.com/xo/dburl"
 	"gopkg.in/yaml.v2"
 )
@@ -86,6 +88,14 @@ func run(urlString, templatePath, mappingPath string) error {
 		"mapColumnType": func(c *Column) string {
 			return columnTypeMapper[c.SQLType]
 		},
+
+		"toUpper": strings.ToUpper,
+		"toLower": strings.ToLower,
+
+		"toSnake":      strcase.ToSnake,
+		"toKebab":      strcase.ToKebab,
+		"toCamel":      strcase.ToCamel,
+		"toLowerCamel": strcase.ToLowerCamel,
 	}).ParseFiles(templatePath)
 	if err != nil {
 		return fmt.Errorf("fail to parse template at %s: %w", templatePath, err)
