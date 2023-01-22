@@ -4,9 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
-	"path"
 	"strings"
 	"text/template"
 
@@ -33,6 +33,25 @@ func main() {
 }
 
 func run(urlString, templatePath string) error {
+	f, err := os.Open(templatePath)
+	if err != nil {
+		return fmt.Errorf("fail to open %s: %w", templatePath, err)
+	}
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return fmt.Errorf("fail to read %s: %w", templatePath, err)
+	}
+	templateText := string(b)
+
+	columnTypeMapper, err := loadColumnTypeMapper()
+	if err != nil {
+		return err
+	}
+
+	return generateContent(urlString, templateText, columnTypeMapper)
+}
+
+func generateContent(urlString, templateText string, columnTypeMapper map[string]string) error {
 	url, err := dburl.Parse(urlString)
 	if err != nil {
 		return fmt.Errorf("fail to parse URL: %w", err)
@@ -59,18 +78,13 @@ func run(urlString, templatePath string) error {
 		columnsMap[t.Name] = columns
 	}
 
-	columnTypeMapper, err := loadColumnTypeMapper()
-	if err != nil {
-		return err
-	}
-
 	data := struct {
 		Tables []*Table
 	}{
 		Tables: tables,
 	}
 
-	t, err := template.New(path.Base(templatePath)).Funcs(template.FuncMap{
+	t, err := template.New("").Funcs(template.FuncMap{
 		"getColumns": func(t *Table) []*Column {
 			cs, ok := columnsMap[t.Name]
 			if !ok {
@@ -89,14 +103,14 @@ func run(urlString, templatePath string) error {
 		"toKebab":      strcase.ToKebab,
 		"toCamel":      strcase.ToCamel,
 		"toLowerCamel": strcase.ToLowerCamel,
-	}).ParseFiles(templatePath)
+	}).Parse(templateText)
 	if err != nil {
-		return fmt.Errorf("fail to parse template at %s: %w", templatePath, err)
+		return fmt.Errorf("fail to parse template: %w", err)
 	}
 
 	err = t.Execute(os.Stdout, data)
 	if err != nil {
-		return fmt.Errorf("fail to apply template at %s: %w", templatePath, err)
+		return fmt.Errorf("fail to apply template: %w", err)
 	}
 
 	return nil
